@@ -14,11 +14,11 @@ gb.task({
 });
 ```
 Options
+* **output** - required output file name
 * **preamble** - optional string to be prepended to the output (if non-empty, separated by `\n` from first source).  Default: `''`.
 * **postamble** - optional string to be appended to the output (if non-empty, separated by `\n` from last source).  Default: `''`.
 * **key** - optional sort key for deterministically ordering the outputs and checking for duplicates.  Default: `'relative'`.
-* **output** - required output file name
-* **proc** - optional processing function that takes the job and a file and returns an object with at least a `contents` member, but may also contain a member named as specified by `key` to impact sorting / duplicate detection.  Default: `(job, file, next) => next(null, file)`.
+* **proc** - optional processing function that takes the job and a file and returns an object with at least a `contents` member, but may also contain a member named as specified by `key` to impact sorting / duplicate detection.  Default: `(job, file, next) => next(null, file)`.  Note: when doing dynamic reprocessing, this will *only* be called on the files which have changed and were not deleted.
 
 
 Example usage:
