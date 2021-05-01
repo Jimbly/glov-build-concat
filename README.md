@@ -14,11 +14,13 @@ gb.task({
 });
 ```
 Options
-* **output** - required output file name
-* **preamble** - optional string to be prepended to the output (if non-empty, separated by `\n` from first source).  Default: `''`.
-* **postamble** - optional string to be appended to the output (if non-empty, separated by `\n` from last source).  Default: `''`.
-* **key** - optional sort key for deterministically ordering the outputs and checking for duplicates.  Default: `'relative'`.
-* **proc** - optional processing function that takes the job and a file and returns an object with at least a `contents` member, but may also contain a member named as specified by `key` to impact sorting / duplicate detection.  Default: `(job, file, next) => next(null, file)`.  Note: when doing dynamic reprocessing, this will *only* be called on the files which have changed and were not deleted.
+* **`output`** - required output file name
+* **`preamble`** - optional string to be prepended to the output (if non-empty, separated by `\n` from first source).  Default: `''`.
+* **`postamble`** - optional string to be appended to the output (if non-empty, separated by `\n` from last source).  Default: `''`.
+* **`key`** - optional key name for checking duplicates, also used as a sort key if no `comparator` is specified.  Can be the name of any member of a `BuildFile` (if no `proc` is specified) or any custom key on the object returned by your `proc`.  Default: `'relative'`.
+* **`comparator`** - optional sort comparator for deterministically ordering the outputs.  Default: `(a,b) => a[key] < b[key] ? -1 : 1`
+* **`proc`** - optional processing function that takes the job and a file and returns an object with at least a `contents` member, but may also contain a member named as specified by `key` to impact sorting / duplicate detection.  Default: `(job, file, next) => next(null, file)`.  Note: when doing dynamic reprocessing, this will *only* be called on the files which have changed and were not deleted.
+* **`sourcemap`** - optional, set to enable loading/parsing sourcemaps associated with the inputs files and generating a combined sourcemap.  May specify `{ inline: true }` or `{ inline: false }`.  Specifying `true` is shorthand for `{ inline: false }` (will output a separate `.map` file adjacent to the concatenated file).  Default: `false`
 
 
 Example usage:
