@@ -1,8 +1,100 @@
 const assert = require('assert');
 const { asyncSeries, asyncEach } = require('glov-async');
+const sourcemap = require('glov-build-sourcemap');
 
 function nopProc(job, file, next) {
   next(null, file);
+}
+
+function sourcemapProc(job, file, next) {
+  sourcemap.init(job, file, function (err, map, ignored, stripped) {
+    if (err) {
+      return void next(err);
+    }
+    next(null, {
+      contents: file.contents,
+      code: stripped,
+      map,
+    });
+  });
+}
+
+function outputSourcemap(job, opts, out_arr) {
+  let { output } = opts;
+  // Concatenate lines and sourcemaps
+  let lines = [];
+  let final_map = {
+    mappings: [],
+    sources: [],
+    sourcesContent: [],
+  };
+  let name_to_idx = Object.create(null);
+  let names = [];
+  for (let ii = 0; ii < out_arr.length; ++ii) {
+    let file = out_arr[ii];
+    if (typeof file === 'string') { // preamble / postamble
+      lines = lines.concat(file.split('\n'));
+      continue;
+    }
+    let code = file.code;
+    let new_lines = code.toString().split('\n');
+    let map = file.map;
+    map = sourcemap.decode(map);
+    // combine
+    assert(final_map.mappings.length <= lines.length);
+    while (final_map.mappings.length < lines.length) {
+      final_map.mappings.push([]); // [[]] instead?
+    }
+    assert(map.sources);
+    assert(map.sourcesContent);
+    assert.equal(map.sources.length, map.sourcesContent.length);
+    let start_source_idx = final_map.sources.length;
+    final_map.sources = final_map.sources.concat(map.sources);
+    final_map.sourcesContent = final_map.sourcesContent.concat(map.sourcesContent);
+    for (let line_num = 0; line_num < map.mappings.length; ++line_num) {
+      let line_map = map.mappings[line_num];
+      let out_line_map = [];
+      for (let jj = 0; jj < line_map.length; ++jj) {
+        let map_elem = line_map[jj];
+        if (map_elem.length <= 1) {
+          // just output char offset, meaningless? pass it through
+          out_line_map.push(map_elem);
+        } else if (map_elem.length === 4 || map_elem.length === 5) {
+          let elem = [ // mostly pass-through
+            map_elem[0],
+            map_elem[1] + start_source_idx, // source file index
+            map_elem[2],
+            map_elem[3],
+          ];
+          if (map_elem.length === 5) {
+            let name = map.names[map_elem[4]];
+            assert(name);
+            let name_idx = name_to_idx[name];
+            if (name_idx === undefined) {
+              name_idx = names.length;
+              name_to_idx[name] = name_idx;
+              names.push(name);
+            }
+            elem.push(name_idx);
+          }
+          out_line_map.push(elem);
+        } else {
+          assert(false);
+        }
+      }
+      final_map.mappings.push(out_line_map);
+    }
+    lines = lines.concat(new_lines);
+  }
+  if (names.length) {
+    final_map.names = names;
+  }
+  sourcemap.out(job, {
+    relative: output,
+    contents: Buffer.from(lines.join('\n')),
+    map: sourcemap.encode(output, final_map),
+    inline: typeof opts.sourcemap === 'object' ? opts.sourcemap.inline : false,
+  });
 }
 
 module.exports = function concat(opts) {
@@ -23,6 +115,12 @@ module.exports = function concat(opts) {
     return a[key] < b[key] ? -1 : 1;
   }
   comparator = comparator || cmp;
+
+  let do_sourcemaps = Boolean(opts.sourcemap);
+  if (do_sourcemaps) {
+    assert(!opts.proc, 'sourcemap option not currently compatible with proc option'); // Could chain, if needed
+    proc = sourcemapProc;
+  }
 
   function concatFunc(job, done) {
     let updated_files = job.getFilesUpdated();
@@ -71,7 +169,7 @@ module.exports = function concat(opts) {
                 user_data.file_map[f.relative] = outfile;
                 if (existing[IDX] !== undefined) {
                   outfile[IDX] = existing[IDX];
-                  user_data.out_arr[existing[IDX]] = outfile.contents;
+                  user_data.out_arr[existing[IDX]] = do_sourcemaps ? outfile : outfile.contents;
                 }
               }
               next();
@@ -80,6 +178,7 @@ module.exports = function concat(opts) {
         }, next);
       },
       function (next) {
+        job.log(`concat: ${list_change + updates} updates`);
         if (list_change || !user_data.out_arr) {
           // Rebuild array to be concatenated
           user_data.file_list = Object.values(user_data.file_map).sort(comparator);
@@ -90,7 +189,7 @@ module.exports = function concat(opts) {
           for (let ii = 0; ii < user_data.file_list.length; ++ii) {
             let elem = user_data.file_list[ii];
             elem[IDX] = user_data.out_arr.length;
-            user_data.out_arr.push(elem.contents);
+            user_data.out_arr.push(do_sourcemaps ? elem : elem.contents);
           }
           if (postamble) {
             user_data.out_arr.push(postamble);
@@ -111,13 +210,15 @@ module.exports = function concat(opts) {
           }
         }
 
-        job.log(`concat: ${list_change + updates} updates`);
-
-        job.out({
-          relative: output,
-          contents: Buffer.from(user_data.out_arr.join('\n')),
-        });
-        done();
+        if (opts.sourcemap) {
+          outputSourcemap(job, opts, user_data.out_arr);
+        } else {
+          job.out({
+            relative: output,
+            contents: Buffer.from(user_data.out_arr.join('\n')),
+          });
+        }
+        next();
       },
     ], done);
   }
