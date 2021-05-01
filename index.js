@@ -2,7 +2,7 @@ const assert = require('assert');
 const { asyncSeries, asyncEach } = require('glov-async');
 
 function nopProc(job, file, next) {
-  next(file);
+  next(null, file);
 }
 
 module.exports = function concat(opts) {
