@@ -6,7 +6,7 @@ function nopProc(job, file, next) {
 }
 
 module.exports = function concat(opts) {
-  let { preamble, postamble, proc, output, key } = opts;
+  let { preamble, postamble, proc, output, key, comparator } = opts;
   proc = proc || nopProc;
   preamble = preamble || '';
   postamble = postamble || '';
@@ -22,6 +22,7 @@ module.exports = function concat(opts) {
   function cmp(a, b) {
     return a[key] < b[key] ? -1 : 1;
   }
+  comparator = comparator || cmp;
 
   function concatFunc(job, done) {
     let updated_files = job.getFilesUpdated();
@@ -81,7 +82,7 @@ module.exports = function concat(opts) {
       function (next) {
         if (list_change || !user_data.out_arr) {
           // Rebuild array to be concatenated
-          user_data.file_list = Object.values(user_data.file_map).sort(cmp);
+          user_data.file_list = Object.values(user_data.file_map).sort(comparator);
           user_data.out_arr = [];
           if (preamble) {
             user_data.out_arr.push(preamble);
