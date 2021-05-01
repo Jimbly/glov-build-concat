@@ -1,7 +1,7 @@
 Concat task processor for [glov-build](https://github.com/Jimbly/glov-build)
 =============================
 
-Concatenates the inputs, separated by `\n`, with optimal run-time caching for quick dynamic reprocessing.  Optional processing function that converts an input file into a `String` or `Buffer`, pre- and post- strings, and configurable sort key.
+Concatenates the inputs, separated by `\n`, with optimal run-time caching for quick dynamic reprocessing.  Optional processing function that converts an input file into a `String` or `Buffer`, pre- and post- strings, configurable sort key, and sourcemap support.
 
 API usage:
 ```javascript
@@ -50,6 +50,16 @@ gb.task({
       });
     },
     output: 'webfs.js',
+  }),
+});
+
+gb.task({
+  name: 'bundle',
+  input: 'other_task:*.js',
+  ...concat({
+    preamble: '// Bundled.',
+    output: 'all.js',
+    sourcemap: { inline: true },
   }),
 });
 
