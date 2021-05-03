@@ -1,3 +1,5 @@
+// TODO: If a proc function returns an error, we don't handle that well between
+//   runs, probably messes up our internal out_array and other caching?
 const assert = require('assert');
 const { asyncSeries, asyncEach } = require('glov-async');
 const sourcemap = require('glov-build-sourcemap');
@@ -8,8 +10,8 @@ function nopProc(job, file, next) {
 
 function sourcemapProc(job, file, next) {
   sourcemap.init(job, file, function (err, map, ignored, stripped) {
-    if (err) {
-      return void next(err);
+    if (err || !map) {
+      return void next(err || `No sourcemap found for ${file.relative}`);
     }
     next(null, {
       contents: file.contents,
@@ -132,6 +134,9 @@ module.exports = function concat(opts) {
     asyncSeries([
       function (next) {
         asyncEach(updated_files, function (f, next) {
+          if (!job.isFileBase(f)) {
+            return next();
+          }
           if (!f.contents) {
             if (user_data.file_map[f.relative]) {
               ++list_change;
@@ -202,7 +207,7 @@ module.exports = function concat(opts) {
             user_data.had_dup = false;
             for (let ii = 0; ii < files.length - 1; ++ii) {
               if (files[ii][key] === files[ii + 1][key]) {
-                job.error(`Two elements with the same ${key}: ` +
+                job.error(`Two elements with the same key "${key}": ` +
                   `${files[ii].relative} and ${files[ii + 1].relative}`);
                 user_data.had_dup = true;
               }
