@@ -25,7 +25,7 @@ Options
 
 Example usage:
 ```javascript
-const concat = require('glov-build.-concat');
+const concat = require('glov-build-concat');
 gb.task({
   name: 'simple',
   input: '*.txt',

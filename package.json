@@ -1,6 +1,6 @@
 {
   "name": "glov-build-concat",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Concat task processor for glov-build",
   "main": "index.js",
   "keywords": [
@@ -16,7 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "glov-async": "0.0.1",
-    "glov-build-sourcemap": "0.0.1"
+    "glov-build-sourcemap": "^0.0.5"
   },
   "devDependencies": {},
   "peerDependencies": {
