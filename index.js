@@ -134,52 +134,51 @@ module.exports = function concat(opts) {
     asyncSeries([
       function (next) {
         asyncEach(updated_files, function (f, next) {
-          if (!job.isFileBase(f)) {
-            return next();
-          }
           if (!f.contents) {
             if (user_data.file_map[f.relative]) {
               ++list_change;
               delete user_data.file_map[f.relative];
             }
-            next();
-          } else {
-            proc(job, f, function (err, outfile) {
-              if (err) {
-                return void next(err);
-              }
-              assert(outfile);
-              assert(outfile.contents);
-              if (!outfile.relative) {
-                outfile.relative = f.relative;
-              }
-              // Caller shouldn't be explicitly storing a different relative path
-              assert.equal(outfile.relative, f.relative);
-              if (Buffer.isBuffer(outfile.contents)) {
-                let contents = outfile.contents.toString();
-                outfile = {
-                  ...outfile,
-                  contents,
-                };
-              }
-              assert.equal(typeof outfile.contents, 'string');
-              let existing = user_data.file_map[f.relative];
-              if (!existing) {
-                ++list_change;
-                user_data.file_map[f.relative] = outfile;
-              } else {
-                // Name not allowed to change, assume canonized from f.relative
-                assert.equal(existing[key], outfile[key]);
-                ++updates;
-                user_data.file_map[f.relative] = outfile;
-                if (existing[IDX] !== undefined) {
-                  outfile[IDX] = existing[IDX];
-                  user_data.out_arr[existing[IDX]] = do_sourcemaps ? outfile : outfile.contents;
-                }
-              }
-              next();
-            });
+            return next();
           }
+          if (!job.isFileBase(f)) {
+            return next();
+          }
+          proc(job, f, function (err, outfile) {
+            if (err) {
+              return void next(err);
+            }
+            assert(outfile);
+            assert(outfile.contents);
+            if (!outfile.relative) {
+              outfile.relative = f.relative;
+            }
+            // Caller shouldn't be explicitly storing a different relative path
+            assert.equal(outfile.relative, f.relative);
+            if (Buffer.isBuffer(outfile.contents)) {
+              let contents = outfile.contents.toString();
+              outfile = {
+                ...outfile,
+                contents,
+              };
+            }
+            assert.equal(typeof outfile.contents, 'string');
+            let existing = user_data.file_map[f.relative];
+            if (!existing) {
+              ++list_change;
+              user_data.file_map[f.relative] = outfile;
+            } else {
+              // Name not allowed to change, assume canonized from f.relative
+              assert.equal(existing[key], outfile[key]);
+              ++updates;
+              user_data.file_map[f.relative] = outfile;
+              if (existing[IDX] !== undefined) {
+                outfile[IDX] = existing[IDX];
+                user_data.out_arr[existing[IDX]] = do_sourcemaps ? outfile : outfile.contents;
+              }
+            }
+            next();
+          });
         }, next);
       },
       function (next) {
