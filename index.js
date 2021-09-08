@@ -229,5 +229,9 @@ module.exports = function concat(opts) {
   return {
     type: 'all',
     func: concatFunc,
+    version: [
+      outputSourcemap,
+      opts,
+    ],
   };
 };
