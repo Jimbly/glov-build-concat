@@ -114,7 +114,13 @@ module.exports = function concat(opts) {
   const IDX = Symbol('idx');
 
   function cmp(a, b) {
-    return a[key] < b[key] ? -1 : 1;
+    if (a[key] !== b[key]) {
+      return a[key] < b[key] ? -1 : 1;
+    }
+    if (a.priority !== undefined && b.priority !== undefined) {
+      return a.priority > b.priority ? -1 : 1;
+    }
+    return 0;
   }
   comparator = comparator || cmp;
 
@@ -190,10 +196,16 @@ module.exports = function concat(opts) {
           if (preamble) {
             user_data.out_arr.push(preamble);
           }
+          let prev_elem_key = {};
           for (let ii = 0; ii < user_data.file_list.length; ++ii) {
             let elem = user_data.file_list[ii];
-            elem[IDX] = user_data.out_arr.length;
-            user_data.out_arr.push(do_sourcemaps ? elem : elem.contents);
+            if (prev_elem_key === elem[key]) {
+              // same key, we must be lower priority, skip
+            } else {
+              elem[IDX] = user_data.out_arr.length;
+              user_data.out_arr.push(do_sourcemaps ? elem : elem.contents);
+              prev_elem_key = elem[key];
+            }
           }
           if (postamble) {
             user_data.out_arr.push(postamble);
@@ -205,9 +217,12 @@ module.exports = function concat(opts) {
             let files = user_data.file_list;
             user_data.had_dup = false;
             for (let ii = 0; ii < files.length - 1; ++ii) {
-              if (files[ii][key] === files[ii + 1][key]) {
-                job.error(`Two elements with the same key "${key}": ` +
-                  `${files[ii].relative} and ${files[ii + 1].relative}`);
+              let file = files[ii];
+              let next_file = files[ii + 1];
+              if (file[key] === next_file[key] && file.priority === next_file.priority) {
+                job.error(`Two elements with the same key ${key}="${file[key]}"${file.priority !== undefined ?
+                  ` and same priority=${file.priority}` : ''}: ` +
+                  `${file.relative} and ${next_file.relative}`);
                 user_data.had_dup = true;
               }
             }
@@ -232,6 +247,7 @@ module.exports = function concat(opts) {
     version: [
       outputSourcemap,
       opts,
+      ...(opts.version || []),
     ],
   };
 };

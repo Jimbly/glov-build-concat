@@ -19,7 +19,7 @@ Options
 * **`postamble`** - optional string to be appended to the output (if non-empty, separated by `\n` from last source).  Default: `''`.
 * **`key`** - optional key name for checking duplicates, also used as a sort key if no `comparator` is specified.  Can be the name of any member of a `BuildFile` (if no `proc` is specified) or any custom key on the object returned by your `proc`.  Default: `'relative'`.
 * **`comparator`** - optional sort comparator for deterministically ordering the outputs.  Default: `(a,b) => a[key] < b[key] ? -1 : 1`
-* **`proc`** - optional processing function that takes the job and a file and returns an object with at least a `contents` member, but may also contain a member named as specified by `key` to impact sorting / duplicate detection.  Default: `(job, file, next) => next(null, file)`.  Note: when doing dynamic reprocessing, this will *only* be called on the files which have changed and were not deleted.
+* **`proc`** - optional processing function that takes the job and a file and returns an object with at least a `contents` member, but may also contain a member named as specified by `key` to impact sorting / duplicate detection, as well as a `priority` member which, if provided will cause the element with the higher priority to be output when two items with the same key exist (also considered not duplicates for the purpose of duplicate detection).  Default: `(job, file, next) => next(null, file)`.  Note: when doing dynamic reprocessing, this will *only* be called on the files which have changed and were not deleted.
 * **`sourcemap`** - optional, set to enable loading/parsing sourcemaps associated with the inputs files and generating a combined sourcemap.  May specify `{ inline: true }` or `{ inline: false }`.  Specifying `true` is shorthand for `{ inline: false }` (will output a separate `.map` file adjacent to the concatenated file).  Default: `false`
 
 
@@ -34,6 +34,7 @@ gb.task({
   }),
 });
 
+// Example converting a bunch of binary files to a useful .js bundle
 const path = require('path');
 gb.task({
   name: 'webfs',
@@ -53,6 +54,7 @@ gb.task({
   }),
 });
 
+// Example bundling .js files and their associated sourcemaps
 gb.task({
   name: 'bundle',
   input: 'other_task:*.js',
@@ -63,4 +65,28 @@ gb.task({
   }),
 });
 
+// Example with programmatic priority to resolve duplicate names
+// input:
+//   bar.txt: 'file1 '
+//   foo.txt: 'file2 '
+//   override/foo.txt: 'file3 '
+// output:
+//   combined.txt: 'file1 file3 '
+gb.task({
+  name: 'overrides',
+  input: '**/*.txt',
+  ...concat({
+    key: 'name',
+    proc: (job, file, next) => {
+      let name = path.basename(file.relative);
+      let priority = file.relative.includes('override/') ? 2 : 1;
+      next(null, {
+        name,
+        priority,
+        contents: file.contents,
+      });
+    },
+    output: 'combined.txt',
+  }),
+});
 ```
