@@ -91,6 +91,17 @@ function outputSourcemap(job, opts, out_arr) {
   if (names.length) {
     final_map.names = names;
   }
+  // Rename any duplicated sources, this avoids a bug on Chrome v102+
+  let seen_sources = {};
+  for (let ii = 0; ii < final_map.sources.length; ++ii) {
+    let fn = final_map.sources[ii];
+    if (seen_sources[fn]) {
+      seen_sources[fn]++;
+      final_map.sources[ii] = `${fn}(${seen_sources[fn]})`;
+    } else {
+      seen_sources[fn] = 1;
+    }
+  }
   sourcemap.out(job, {
     relative: output,
     contents: Buffer.from(lines.join('\n')),

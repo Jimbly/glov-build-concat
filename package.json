@@ -1,6 +1,6 @@
 {
   "name": "glov-build-concat",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Concat task processor for glov-build",
   "main": "index.js",
   "keywords": [
