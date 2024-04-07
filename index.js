@@ -165,6 +165,11 @@ module.exports = function concat(opts) {
             if (err) {
               return void next(err);
             }
+            if (!outfile) {
+              // skip it
+              assert(!user_data.file_map[f.relative]);
+              return next();
+            }
             assert(outfile);
             assert(outfile.contents);
             if (!outfile.relative) {
