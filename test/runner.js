@@ -48,12 +48,15 @@ function onDone() {
 }
 
 
-function doTest({ input, output, tasks, checker }) {
+function doTest({ input, output, tasks, checker, watch }) {
   setup(input);
   check_fn = checker;
   expected_output = output;
   gb.once('done', onDone);
-  gb.go({
-    tasks,
-  });
+  if (!gb.running) {
+    gb.go({
+      tasks,
+      watch,
+    });
+  }
 }

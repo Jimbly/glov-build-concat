@@ -166,8 +166,11 @@ module.exports = function concat(opts) {
               return void next(err);
             }
             if (!outfile) {
-              // skip it
-              assert(!user_data.file_map[f.relative]);
+              // skip it, remove output if it was previously output
+              if (user_data.file_map[f.relative]) {
+                ++list_change;
+                delete user_data.file_map[f.relative];
+              }
               return next();
             }
             assert(outfile);
