@@ -102,12 +102,17 @@ function outputSourcemap(job, opts, out_arr) {
       seen_sources[fn] = 1;
     }
   }
-  sourcemap.out(job, {
+  let sourcemap_params = {
     relative: output,
     contents: Buffer.from(lines.join('\n')),
     map: sourcemap.encode(output, final_map),
-    inline: typeof opts.sourcemap === 'object' ? opts.sourcemap.inline : false,
-  });
+  };
+  if (typeof opts.sourcemap === 'object') {
+    for (let key in opts.sourcemap) {
+      sourcemap_params[key] = opts.sourcemap[key];
+    }
+  }
+  sourcemap.out(job, sourcemap_params);
 }
 
 module.exports = function concat(opts) {
