@@ -161,10 +161,10 @@ module.exports = function concat(opts) {
               ++list_change;
               delete user_data.file_map[f.relative];
             }
-            return next();
+            return void next();
           }
           if (!job.isFileBase(f)) {
-            return next();
+            return void next();
           }
           proc(job, f, function (err, outfile) {
             if (err) {
@@ -176,7 +176,7 @@ module.exports = function concat(opts) {
                 ++list_change;
                 delete user_data.file_map[f.relative];
               }
-              return next();
+              return void next();
             }
             assert(outfile);
             assert(outfile.contents);

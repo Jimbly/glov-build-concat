@@ -10,7 +10,7 @@ gb.task({
     output: 'all.txt',
     proc: function (job, file, next) {
       if (file.contents.length > 6) {
-        return next(null);
+        return void next(null);
       }
       next(null, file);
     },
